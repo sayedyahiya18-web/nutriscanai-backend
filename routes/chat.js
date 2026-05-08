@@ -27,8 +27,12 @@ router.post('/', async (req, res) => {
       
       User Question: ${query}
       
-      Keep the response concise, friendly, and focused on the user's specific health goals if provided.
-      Avoid medical jargon. Use bullet points for clarity.
+      Formatting Instructions:
+      1. Keep the response concise, friendly, and focused.
+      2. Use clear, simple language. Avoid medical jargon.
+      3. Use a single bullet point (*) for lists, do not over-use bolding (**).
+      4. Avoid repeating symbols like '*' excessively.
+      5. Structure with clear paragraphs or lists.
     `;
 
     const result = await model.generateContent(prompt);
