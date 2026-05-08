@@ -60,10 +60,10 @@ router.post('/diet-plan', async (req, res) => {
     const prompt = `
       Generate a 1-day personalized diet plan based on:
       Diet Type: ${profile.dietType}
-      Protein Goal: ${profile.proteinGoal}g
       Routine: ${profile.routine}
       Allergies: ${profile.allergies.join(', ')}
       Conditions: ${profile.conditions.join(', ')}
+      Physical Stats: ${profile.gender}, ${profile.weight}kg, ${profile.height}cm
 
       Return JSON format ONLY: 
       {
