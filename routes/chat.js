@@ -6,6 +6,26 @@ const router = express.Router();
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+/**
+ * Robust helper to try multiple model versions if one is unavailable.
+ * This prevents the "Model not found" errors in different regions.
+ */
+async function generateWithFallback(prompt) {
+  const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
+  let lastError;
+  for (const modelName of models) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      return result;
+    } catch (e) {
+      console.warn(`Model ${modelName} failed: ${e.message}`);
+      lastError = e;
+    }
+  }
+  throw lastError;
+}
+
 // Generic Chat Endpoint
 router.post('/', async (req, res) => {
   const { query, product, profile } = req.body;
@@ -15,8 +35,6 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-
     const prompt = `
       You are NutriScan AI assistant. Your goal is to provide simple, actionable health advice based on food products.
       
@@ -35,10 +53,9 @@ router.post('/', async (req, res) => {
       5. Structure with clear paragraphs or lists.
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(prompt);
     const response = await result.response;
     const text = response.text();
-
     res.json({ reply: text });
   } catch (error) {
     console.error('Chat error:', error);
@@ -55,8 +72,6 @@ router.post('/diet-plan', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-
     const prompt = `
       Generate a 1-day personalized diet plan based on:
       Diet Type: ${profile.dietType}
@@ -76,7 +91,7 @@ router.post('/diet-plan', async (req, res) => {
       }
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(prompt);
     const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const cleanedJson = jsonMatch ? jsonMatch[0] : text;
@@ -96,8 +111,6 @@ router.post('/insight', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-
     const prompt = `
       Analyze this food product:
       Product: ${product.name}
@@ -126,7 +139,7 @@ router.post('/insight', async (req, res) => {
       }
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(prompt);
     const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const cleanedJson = jsonMatch ? jsonMatch[0] : text;
@@ -155,8 +168,6 @@ router.post('/location-health', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-
     const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
     const currentYear = new Date().getFullYear();
 
@@ -180,7 +191,7 @@ router.post('/location-health', async (req, res) => {
       If no notable disease risk, return an empty array [].
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(prompt);
     const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const cleanedJson = jsonMatch ? jsonMatch[0] : text;
